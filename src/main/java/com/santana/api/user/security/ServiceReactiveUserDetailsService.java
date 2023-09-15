@@ -22,7 +22,7 @@ public class ServiceReactiveUserDetailsService implements ReactiveUserDetailsSer
     @Override
     public Mono<UserDetails> findByUsername(String username) {
         return userService
-                .findUserByExample(User.builder().email(username).build())
+                .getUserByEmail(username)
                 .map(CustomUserDetails::new);
     }
 

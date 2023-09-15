@@ -6,10 +6,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.ExampleMatcher.GenericPropertyMatcher;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.client.HttpClientErrorException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,7 +29,22 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public Flux<User> getUsers(long limit) {
-        return userRepository.findAll().take(limit);
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        if (!authentication.isAuthenticated()) {
+            throw new HttpClientErrorException(HttpStatus.FORBIDDEN, "User not authenticated");
+        }
+
+        if (authentication.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ADM"))) {
+            return userRepository.findByEnabledIsTrue().take(limit);
+        }
+
+        String email = (String) authentication.getPrincipal();
+        return userRepository.findByEmailContainingIgnoreCaseAndEnabledIsTrue(email).flux();
+    }
+
+    public Mono<User> getUserByEmail(String email) {
+        return userRepository.findByEmailContainingIgnoreCaseAndEnabledIsTrue(email);
     }
 
     public Mono<User> getUserById(String id) {
@@ -32,9 +53,11 @@ public class UserService {
 
     public Mono<User> newUser(@RequestBody User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setId(null);
         return userRepository.save(user);
     }
 
+    @PreAuthorize("hasAuthority('ADM')")
     public Mono<Void> deleteUser(@PathVariable("id") String id) {
         return userRepository.deleteById(id);
     }

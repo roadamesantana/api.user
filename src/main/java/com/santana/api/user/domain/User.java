@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
@@ -19,6 +20,7 @@ import javax.validation.constraints.Size;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class User {
     @Id
+    @Field("_id")
     private String id = "";
 
     @Builder.Default
@@ -36,11 +38,14 @@ public class User {
     @ValidRoles
     private String role = "";
 
+    private boolean enabled = true;
+
     public User(User user) {
         this.id = user.getId();
         this.name = user.getName();
         this.email = user.getEmail();
         this.password = user.getPassword();
         this.role = user.getRole();
+        this.enabled = user.isEnabled();
     }
 }

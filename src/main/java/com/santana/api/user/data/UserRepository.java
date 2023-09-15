@@ -8,7 +8,9 @@ import reactor.core.publisher.Mono;
 
 public interface UserRepository extends ReactiveCrudRepository<User, String> {
 
-    Flux<User> findByEmailContainingIgnoreCase(String email);
+    Mono<User> findByEmailContainingIgnoreCaseAndEnabledIsTrue(String email);
+
+    Flux<User> findByEnabledIsTrue();
 
     Mono<User> findOne(Example<User> example);
 }
